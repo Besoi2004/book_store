@@ -16,7 +16,6 @@ const navigation = [
 
 const Navbar = () => {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-    console.log(isDropdownOpen)
 
     const cartItems = useSelector((state) => state.cart.cartItems);
     
