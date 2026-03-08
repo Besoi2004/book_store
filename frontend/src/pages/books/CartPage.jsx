@@ -2,7 +2,7 @@ import React from 'react'
 import { useSelector } from 'react-redux'
 import { Link } from 'react-router-dom'
 import { getImgUrl } from '../../utils/getImgUrl'
-import { removeFromCart, clearCart } from '../../redux/features/cart/CartSlide'
+import { removeFromCart, clearCart } from '../../redux/features/cart/cartSlide'
 import { useDispatch } from 'react-redux'
 
 
