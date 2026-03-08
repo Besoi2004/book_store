@@ -11,12 +11,17 @@
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.11.2",
+    "axios": "^1.13.6",
+    "chart.js": "^4.5.1",
+    "firebase": "^12.10.0",
     "react": "^19.2.0",
+    "react-chartjs-2": "^5.3.1",
     "react-dom": "^19.2.0",
     "react-hook-form": "^7.71.1",
     "react-icons": "^5.5.0",
     "react-redux": "^9.2.0",
     "react-router-dom": "^7.12.0",
+    "sweetalert2": "^11.26.21",
     "swiper": "^12.1.0"
   },
   "devDependencies": {

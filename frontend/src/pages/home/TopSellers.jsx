@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import BookCard from '../books/BookCard'
+import { useFetchAllBooksQuery } from '../../redux/features/books/booksApi';
 
 // Import Swiper React components
 import { Swiper, SwiperSlide } from 'swiper/react';
@@ -15,14 +16,12 @@ import { Pagination, Navigation } from 'swiper/modules';
 const category = ["Chọn thể loại", "Kinh doanh", "Marketing", "Kinh dị", "Tiểu thuyết", "Phiêu lưu"];
 
 const TopSellers = () => {
-    const [books, setBooks] = useState([]);
+    
     const [selectedCategory, setSelectedCategory] = useState("Chọn thể loại");
 
-    useEffect(() => {
-        fetch('book.json')
-            .then(res => res.json())
-            .then(data => setBooks(data))
-    }, []);
+    const { data: books = [] } = useFetchAllBooksQuery();
+    
+
 
     // Map Vietnamese categories to English
     const categoryMap = {

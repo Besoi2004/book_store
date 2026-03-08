@@ -2,9 +2,11 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { FaGoogle } from "react-icons/fa";
 import { useForm } from "react-hook-form";
+import { useAuth } from "../context/AuthContext";
 
 const Register = () => {
     const [message, setMessage] = useState("");
+    const { registerUser, singInWithGoogle } = useAuth();
     const {
         register,
         handleSubmit,
@@ -14,12 +16,22 @@ const Register = () => {
     const onSubmit = async (data) => {
         console.log(data);
         // Placeholder registration logic
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        setMessage("Registered (placeholder). Replace with real auth.");
+        try {
+            await registerUser(data.email, data.password);
+            alert("Registration successful!");
+        } catch (error) {
+            setMessage("Registration failed. Please try again.");
+        }
     };
 
-    const handleGoogleSignIn = () => {
-        setMessage("Google sign-in not implemented.");
+    const handleGoogleSignIn = async () => {
+        try {
+            await singInWithGoogle();
+            alert("Google sign-in successful!");
+            
+        } catch (error) {
+            setMessage("Google sign-in failed. Please try again.");
+        }
     };
 
   return (

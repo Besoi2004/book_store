@@ -2,10 +2,16 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { FaGoogle } from "react-icons/fa";
 import { useForm } from "react-hook-form";
+import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
+
+
 
 
 const Login = () => {
     const [message, setMessage] = useState("");
+    const { loginUser, singInWithGoogle } = useAuth();
+    const navigate = useNavigate();
     const {
         register,
         handleSubmit,
@@ -15,12 +21,23 @@ const Login = () => {
     const onSubmit = async (data) => {
         console.log(data);
         // Placeholder login logic
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        setMessage("Logged in (placeholder). Replace with real auth.");
+        try {
+            await loginUser(data.email, data.password);
+            alert("Login successful!");
+            navigate("/");
+        } catch (error) {
+            setMessage("Login failed. Please check your credentials.");
+        }
     };
 
-    const handleGoogleSignIn = () => {
-        setMessage("Google sign-in not implemented.");
+    const handleGoogleSignIn = async () => {
+        try {
+            await singInWithGoogle();
+            alert("Google sign-in successful!");
+            navigate("/");
+        } catch (error) {
+            setMessage("Google sign-in failed. Please try again.");
+        }
     };
 
     return (
