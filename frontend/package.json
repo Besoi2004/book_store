@@ -1,8 +1,10 @@
 {
-  "name": "frontend",
+  "name": "book-store",
+  "description": "A full-stack MERN bookstore application with Vite + React",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
+  "keywords": ["vite", "react", "bookstore", "mern", "redux", "tailwindcss"],
   "scripts": {
     "dev": "vite",
     "build": "vite build",
