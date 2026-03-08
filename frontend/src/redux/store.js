@@ -1,5 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit'
-import cartReducer from "../redux/features/cart/CartSlide.js"
+import cartReducer from '../redux/features/cart/cartSlice.js';
 import booksApi from '../redux/features/books/booksApi.js';
 import ordersApi from '../redux/features/orders/ordersApi.js';
 
