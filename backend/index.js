@@ -53,6 +53,9 @@ app.use("/api/contacts", contactRoutes);
 app.use("/api/ranks", rankRoutes);
 
 async function main() {
+    if (!process.env.DB_URL) {
+        throw new Error('DB_URL environment variable is not set!');
+    }
     // Connect to MongoDB with autoIndex disabled to prevent duplicate index warnings
     await mongoose.connect(process.env.DB_URL, {
         autoIndex: false // Disable automatic index creation on startup
@@ -62,11 +65,13 @@ async function main() {
     await autoInitializeRanks();
     
     app.get('/', (req, res) => {
-    res.send('Hello ')
+        res.send('Hello - Backend is running!')
     })
 }
 
-main().then(() => console.log('Connected to MongoDB successfully')).catch(err => console.log(err));
+main()
+    .then(() => console.log('Connected to MongoDB successfully'))
+    .catch(err => console.error('MongoDB connection error:', err.message));
 
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`)
