@@ -1,9 +1,8 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
-
-
+import getBaseURL from '../../../utils/baseURL';
 
 const baseQuery = fetchBaseQuery({
-    baseUrl: 'http://localhost:5000/api/books',
+    baseUrl: `${getBaseURL()}/api/books`,
     credentials: 'include',
     prepareHeaders: (headers) => {
         const token = localStorage.getItem('token');
@@ -53,7 +52,7 @@ const booksApi = createApi({
         }),
         toggleFavorite: builder.mutation({
             query: ({ bookId, email }) => ({
-                url: `http://localhost:5000/api/users/${email}/favorites/${bookId}`,
+                url: `${getBaseURL()}/api/users/${email}/favorites/${bookId}`,
                 method: 'POST',
             }),
             invalidatesTags: ['Books'],
