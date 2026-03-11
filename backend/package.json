@@ -4,7 +4,9 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "start:dev": "nodemon index.js"
+    "start:dev": "nodemon index.js",
+    "init-ranks": "node initializeRanks.js",
+    "init-ranks:force": "node initializeRanks.js --force"
   },
   "keywords": [],
   "author": "",

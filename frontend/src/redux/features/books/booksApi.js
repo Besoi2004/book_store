@@ -42,7 +42,7 @@ const booksApi = createApi({
                 body: rest,
                 headers: { 'Content-Type': 'application/json' },
             }),
-            invalidatesTags: (result, error, { id }) => [{ type: 'Books', id }], 
+            invalidatesTags: (result, error, { id }) => ['Books', { type: 'Books', id }], 
         }), 
         deleteBook: builder.mutation({
             query: (id) => ({
@@ -51,8 +51,22 @@ const booksApi = createApi({
             }),
             invalidatesTags: ['Books'], 
         }),
+        toggleFavorite: builder.mutation({
+            query: ({ bookId, email }) => ({
+                url: `http://localhost:5000/api/users/${email}/favorites/${bookId}`,
+                method: 'POST',
+            }),
+            invalidatesTags: ['Books'],
+        }),
     })
 })
 
-export const { useFetchAllBooksQuery, useFetchBookByIdQuery, useAddBookMutation, useUpdateBookMutation, useDeleteBookMutation } = booksApi;
+export const { 
+    useFetchAllBooksQuery, 
+    useFetchBookByIdQuery, 
+    useAddBookMutation, 
+    useUpdateBookMutation, 
+    useDeleteBookMutation,
+    useToggleFavoriteMutation
+} = booksApi;
 export default booksApi;

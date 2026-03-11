@@ -1,17 +1,25 @@
 import React,{useState} from 'react'
-import { useSelector } from 'react-redux';
+import Loading from '../../components/Loading';
+import { useSelector, useDispatch } from 'react-redux';
+import { clearCart } from '../../redux/features/cart/cartSlide';
 import { useForm } from "react-hook-form";
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { formatVND } from '../../utils/formatVND';
 import { useCreateOrderMutation } from '../../redux/features/orders/ordersApi';
+import { useTierNotification } from '../../context/TierNotificationContext';
 import Swal from 'sweetalert2';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import getBaseUrl from '../../utils/baseURL';
 
 
 const Checkout = () => {
     const cartItems = useSelector((state) => state.cart.cartItems);
-    const totalPrice = cartItems.reduce((acc, item) => acc + item.newPrice, 0).toFixed(2);
+    const totalPrice = parseFloat(cartItems.reduce((acc, item) => acc + (item.newPrice * (item.quantity || 1)), 0).toFixed(2));
     const { currentUser } = useAuth();
+    const { showTierUpgrade } = useTierNotification();
+    const dispatch = useDispatch();
     const {
         register,
         handleSubmit,
@@ -36,29 +44,85 @@ const Checkout = () => {
             },
             phone: data.phone,
             productIds: cartItems.map(item => item?._id),
+            quantities: cartItems.map(item => item.quantity || 1),
             totalPrice: totalPrice,
         }
         
         try {
             await createOrder(newOrder).unwrap();
-            Swal.fire({
-            title: "confirmed order",
-            text: "Your order placed successfully!",
-            icon: "warning",
-            showCancelButton: true,
-            confirmButtonColor: "#3085d6",
-            cancelButtonColor: "#d33",
-            confirmButtonText: "Order"
             
-            });
-            navigate('/orders');
+            // Calculate points based on order total
+            // TODO: Customize point calculation (currently 1 point per 10,000 VND or 1 point per $1)
+            const pointsToAdd = Math.floor(Number(totalPrice));
+            
+            // Add points to user profile
+            if (currentUser?.email && pointsToAdd > 0) {
+                try {
+                    const response = await axios.put(
+                        `${getBaseUrl()}/api/users/${currentUser.email}/points`,
+                        { points: pointsToAdd }
+                    );
+                    
+                    // Check if tier was upgraded
+                    if (response.data.tierUpgraded) {
+                        // Show tier upgrade notification
+                        setTimeout(() => {
+                            showTierUpgrade(response.data.tier);
+                        }, 1000);
+                        
+                        Swal.fire({
+                            title: "Đơn hàng đã được xác nhận!",
+                            html: `
+                                <p>Đơn hàng của bạn đã được đặt thành công!</p>
+                                <p class="mt-2 text-green-600 font-bold">+${pointsToAdd} điểm thưởng</p>
+                                <p class="mt-2 text-purple-600">🎉 Chúc mừng! Bạn đã lên hạng ${response.data.tier === 'silver' ? 'Bạc' : response.data.tier === 'gold' ? 'Vàng' : 'Kim Cương'}!</p>
+                            `,
+                            icon: "success",
+                            confirmButtonColor: "#3085d6",
+                            confirmButtonText: "Xem đơn hàng"
+                        });
+                    } else {
+                        Swal.fire({
+                            title: "Đơn hàng đã được xác nhận!",
+                            html: `
+                                <p>Đơn hàng của bạn đã được đặt thành công!</p>
+                                <p class="mt-2 text-green-600 font-bold">+${pointsToAdd} điểm thưởng</p>
+                            `,
+                            icon: "success",
+                            confirmButtonColor: "#3085d6",
+                            confirmButtonText: "Xem đơn hàng"
+                        });
+                    }
+                } catch (pointsError) {
+                    console.error('Error adding points:', pointsError);
+                    // Still show success for order even if points fail
+                    Swal.fire({
+                        title: "Đơn hàng đã được xác nhận!",
+                        text: "Đơn hàng của bạn đã được đặt thành công!",
+                        icon: "success",
+                        confirmButtonColor: "#3085d6",
+                        confirmButtonText: "Xem đơn hàng"
+                    });
+                }
+            } else {
+                Swal.fire({
+                    title: "Đơn hàng đã được xác nhận!",
+                    text: "Đơn hàng của bạn đã được đặt thành công!",
+                    icon: "success",
+                    confirmButtonColor: "#3085d6",
+                    confirmButtonText: "Xem đơn hàng"
+                });
+            }
+            
+            dispatch(clearCart());
+            navigate('/user/dashboard/orders');
         } catch (error) {
             console.error('Error creating order:', error);
             alert('Error creating order. Please try again.');
         }
         
     }
-    if (isLoading) return <p>Loading...</p>;
+    if (isLoading) return <Loading />;
   return (
     <section>
         <div className="min-h-screen p-6 bg-gray-100 flex items-center justify-center">
@@ -66,7 +130,7 @@ const Checkout = () => {
         <div>
             <div>
             <h2 className="font-semibold text-xl text-gray-600 mb-2">Cash On Delevary</h2>
-            <p className="text-gray-500 mb-2">Total Price: ${totalPrice}</p>
+            <p className="text-gray-500 mb-2">Total Price: {formatVND(totalPrice)}</p>
             <p className="text-gray-500 mb-6">Items:{cartItems.length > 0 ? cartItems.length : 0}</p>
             </div>
 

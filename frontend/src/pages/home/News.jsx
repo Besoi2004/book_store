@@ -49,7 +49,15 @@ const news = [
 const News = () => {
   return (
     <div className='py-16'>
-        <h2 className='text-3xl font-semibold mb-6'>News </h2>
+        <div className="mb-10">
+            <div className="flex items-center gap-3 mb-4">
+                <div className="w-1 h-8 bg-gradient-to-b from-bright-orange to-Favorite rounded-full"></div>
+                <h2 className="text-4xl font-bold bg-gradient-to-r from-bright-orange to-Favorite bg-clip-text text-transparent">
+                    Tin tức & Sự kiện
+                </h2>
+            </div>
+            <p className="text-gray-600 ml-4">Cập nhật những tin tức mới nhất từ thế giới sách</p>
+        </div>
 
         <Swiper
         slidesPerView={1}
@@ -76,18 +84,38 @@ const News = () => {
         {
             news.map((item, index) => (
                 <SwiperSlide key={index}>
-                    <div className='flex flex-col sm:flex-row sm:justify-between items-center gap-12'>
-                        {/* content */}
-                        <div className='py-4'>
-                            <Link to="/">
-                                 <h3 className='text-lg font-medium hover:text-blue-500 mb-4'>{item.title}</h3>
-                            </Link>
-                            <div className='w-12 h-[4px] bg-primary mb-5'></div>
-                            <p className='text-sm text-gray-600'>{item.description}</p>
-                        </div>
+                    <div className='group bg-white rounded-2xl shadow-soft hover:shadow-hover transition-all duration-300 overflow-hidden'>
+                        <div className='flex flex-col h-full'>
+                            {/* Image */}
+                            <div className='relative overflow-hidden h-56'>
+                                <div className='absolute inset-0 bg-gradient-to-t from-black/50 to-transparent z-10'></div>
+                                <img 
+                                    src={item.image} 
+                                    alt={item.title}  
+                                    className='w-full h-full object-cover group-hover:scale-110 transition-transform duration-500'
+                                />
+                            </div>
 
-                        <div className='flex-shrink-0'>
-                            <img src={item.image} alt=""  className='w-full object-cover'/>
+                            {/* Content */}
+                            <div className='p-6 flex-1 flex flex-col'>
+                                <div className='flex-1'>
+                                    <h3 className='text-xl font-bold text-gray-800 mb-3 transition-colors duration-300 line-clamp-2'>
+                                        {item.title}
+                                    </h3>
+                                    <p className='text-sm text-gray-600 leading-relaxed line-clamp-3'>
+                                        {item.description}
+                                    </p>
+                                </div>
+                                
+                                <div className='mt-4 pt-4 border-t border-gray-100'>
+                                    <Link to="/shop" className='inline-flex items-center gap-2 text-secondary font-semibold hover:gap-3 transition-all duration-300 group'>
+                                        <span>Đọc thêm</span>
+                                        <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                                            <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M13 7l5 5m0 0l-5 5m5-5H6' />
+                                        </svg>
+                                    </Link>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </SwiperSlide>

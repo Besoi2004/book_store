@@ -1,17 +1,19 @@
 import React from 'react'
 import Banner from './Banner'
-import TopSellers from './TopSellers'
+import FlashSale from './FlashSale'
 import Recommended from './Recommended'
-import News from './News'
+import RewardsBanner from './RewardsBanner'
+import ContactBanner from './ContactBanner'
 import Footer from '../../components/Footer'
 
 const Home = () => {
     return (
         <>
             <Banner />
-            <TopSellers />
+            <FlashSale />
             <Recommended />
-            <News/>
+            <RewardsBanner />
+            <ContactBanner />
             
         </>
     )

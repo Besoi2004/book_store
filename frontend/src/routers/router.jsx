@@ -5,9 +5,7 @@ import App from "../App";
 import Home from "../pages/home/Home";
 import Login from "../components/Login";
 import Register from "../components/Register";
-import AdminLogin from "../components/AdminLogin";
 import CartPage from "../pages/books/CartPage";
-import Checkout from "../pages/books/Checkout";
 import SingleBook from "../pages/books/SingleBook";
 import OrderPage from "../pages/books/OrderPage";
 import PrivateRoute from "./PrivateRoute";
@@ -17,6 +15,20 @@ import Dashboard from "../pages/dashboard/Dashboard";
 import ManageBooks from "../pages/dashboard/manageBooks/ManageBooks";
 import AddBook from "../pages/dashboard/addBooks/AddBook";
 import EditBook from "../pages/dashboard/editBook/UpdateBook";
+import ManageOrders from "../pages/dashboard/manageOrders/ManageOrders";
+import ManageUsers from "../pages/dashboard/manageUsers/ManageUsers";
+import ManageCoupons from "../pages/dashboard/manageEvents/ManageCoupons";
+import AddCoupon from "../pages/dashboard/manageEvents/AddCoupon";
+import ManageForms from "../pages/dashboard/manageForms/ManageForms";
+import ManageRanks from "../pages/dashboard/manageRanks/ManageRanks";
+import Shop from "../pages/home/Shop";
+import Contact from "../pages/home/Contact";
+import Points from "../pages/home/Points";
+import UserDashboard from "../pages/user/UserDashboard";
+import UserProfile from "../pages/user/UserProfile";
+import UserSettings from "../pages/user/UserSettings";
+import Favorites from "../pages/user/Favorites";
+import Notifications from "../pages/user/Notifications";
 
 
 const router = createBrowserRouter([
@@ -29,8 +41,20 @@ const router = createBrowserRouter([
                 element: <Home />,
             },
             {
-                path: "/orders",
-                element: <PrivateRoute><OrderPage /></PrivateRoute>,
+                path: "/shop",
+                element: <Shop />,
+            },
+            {
+                path: "/notifications",
+                element: <PrivateRoute><Notifications /></PrivateRoute>,
+            },
+            {
+                path: "/contact",
+                element: <Contact />,
+            },
+            {
+                path: "/points",
+                element: <Points />,
             },
             {
                 path: "/about",
@@ -49,19 +73,36 @@ const router = createBrowserRouter([
                 element: <CartPage />,
             },
             {
-                path: "/checkout",
-                element: <PrivateRoute><Checkout /></PrivateRoute>,
-            },
-            {
                 path: "/books/:id",
                 element: <SingleBook />,
+            },
+            {
+                path: "/user/dashboard",
+                element: <PrivateRoute><UserDashboard /></PrivateRoute>,
+                children: [
+                    {
+                        index: true,
+                        element: <UserProfile />,
+                    },
+                    {
+                        path: "profile",
+                        element: <UserProfile />,
+                    },
+                    {
+                        path: "orders",
+                        element: <OrderPage />,
+                    },
+                    {
+                        path: "favorites",
+                        element: <Favorites />,
+                    },
+                    {
+                        path: "settings",
+                        element: <UserSettings />,
+                    }
+                ]
             }
         ]
-    },
-
-    {
-        path: "/admin",
-        element: <AdminLogin />
     },
 
     {
@@ -83,6 +124,34 @@ const router = createBrowserRouter([
             {
                 path:"manage-books",
                 element: <AdminRoute><ManageBooks/></AdminRoute>,
+            },
+            {
+                path:"manage-orders",
+                element: <AdminRoute><ManageOrders/></AdminRoute>,
+            },
+            {
+                path:"manage-users",
+                element: <AdminRoute><ManageUsers/></AdminRoute>,
+            },
+            {
+                path:"manage-coupons",
+                element: <AdminRoute><ManageCoupons/></AdminRoute>,
+            },
+            {
+                path:"add-coupon",
+                element: <AdminRoute><AddCoupon/></AdminRoute>,
+            },
+            {
+                path:"edit-coupon/:id",
+                element: <AdminRoute><AddCoupon/></AdminRoute>,
+            },
+            {
+                path:"manage-forms",
+                element: <AdminRoute><ManageForms/></AdminRoute>,
+            },
+            {
+                path:"manage-ranks",
+                element: <AdminRoute><ManageRanks/></AdminRoute>,
             }
 
         ]

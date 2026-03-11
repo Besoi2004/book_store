@@ -1,6 +1,6 @@
 const express = require('express');
 const Book = require('./book.model');
-const { postABook, getAllBooks, getSingleBook, updateBook, deleteBook } = require('./book.controller');
+const { postABook, getAllBooks, getSingleBook, updateBook, deleteBook, toggleFavorite } = require('./book.controller');
 const verifyAdminToken = require('../middleware/verifyAdminToken');
 const router = express.Router();
 
@@ -19,5 +19,8 @@ router.put("/edit/:id", verifyAdminToken, updateBook);
 
 // delete book
 router.delete("/:id", verifyAdminToken, deleteBook);
+
+// toggle favorite
+router.patch("/:id/favorite", toggleFavorite);
 
 module.exports = router;

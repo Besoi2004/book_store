@@ -7,7 +7,8 @@ const port = process.env.PORT || 5000
 require('dotenv').config();
 
 //middleware
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // CORS configuration for production and development
 const allowedOrigins = [
@@ -34,14 +35,31 @@ const bookRoutes = require('./src/books/book.route');
 const orderRoutes = require('./src/orders/order.route');
 const userRoutes = require('./src/users/user.route');
 const adminRoutes = require('./src/stats/admin.stats');
+const notificationRoutes = require('./src/notifications/notification.route');
+const couponRoutes = require('./src/coupons/coupon.route');
+const contactRoutes = require('./src/contacts/contact.route');
+const rankRoutes = require('./src/ranks/rank.route');
+const { autoInitializeRanks } = require('./src/ranks/rank.init');
 
 app.use("/api/books", bookRoutes)
 app.use("/api/orders", orderRoutes);
 app.use("/api/auth", userRoutes);
+app.use("/api/users", userRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/coupons", couponRoutes);
+app.use("/api/contacts", contactRoutes);
+app.use("/api/ranks", rankRoutes);
 
 async function main() {
-    await mongoose.connect(process.env.DB_URL);
+    // Connect to MongoDB with autoIndex disabled to prevent duplicate index warnings
+    await mongoose.connect(process.env.DB_URL, {
+        autoIndex: false // Disable automatic index creation on startup
+    });
+    
+    // Auto-initialize default ranks if none exist
+    await autoInitializeRanks();
+    
     app.get('/', (req, res) => {
     res.send('Hello ')
     })

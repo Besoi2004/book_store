@@ -1,9 +1,23 @@
 import { createSlice } from '@reduxjs/toolkit'
 import Swal from 'sweetalert2'
 
-const initialState = {
-    cartItems: [],
+const loadCartFromStorage = () => {
+    try {
+        const saved = localStorage.getItem('cartItems')
+        return saved ? JSON.parse(saved) : []
+    } catch {
+        return []
+    }
+}
 
+const saveCartToStorage = (cartItems) => {
+    try {
+        localStorage.setItem('cartItems', JSON.stringify(cartItems))
+    } catch {}
+}
+
+const initialState = {
+    cartItems: loadCartFromStorage(),
 }
 
 const cartSlice = createSlice({
@@ -13,35 +27,45 @@ const cartSlice = createSlice({
         addToCart: (state, action) => {
             const existingItem = state.cartItems.find(item => item._id === action.payload._id);
             if (!existingItem) {
-                state.cartItems.push({ ...action.payload });
+                state.cartItems.push({ ...action.payload, quantity: 1 });
                 Swal.fire({
                     position: "center",
                     icon: "success",
-                    title: "Product added to cart",
+                    title: "Đã thêm vào giỏ hàng",
                     showConfirmButton: false,
                     timer: 1500
                 });
-            }else{
+            } else {
+                existingItem.quantity += 1;
                 Swal.fire({
-                    title: "Already in cart",
-                    text: "You won't be able to revert this!",
-                    icon: "warning",
-                    showCancelButton: true,
-                    confirmButtonColor: "#3085d6",
-                    cancelButtonColor: "#d33",
-                    confirmButtonText: "OK!"
-                })
+                    position: "center",
+                    icon: "success",
+                    title: "Đã tăng số lượng",
+                    showConfirmButton: false,
+                    timer: 1500
+                });
             }
+            saveCartToStorage(state.cartItems);
+        },
+        updateQuantity: (state, action) => {
+            const { id, quantity } = action.payload;
+            const item = state.cartItems.find(item => item._id === id);
+            if (item) {
+                item.quantity = quantity;
+            }
+            saveCartToStorage(state.cartItems);
         },
         removeFromCart: (state, action) => {
             state.cartItems = state.cartItems.filter(item => item._id !== action.payload);
+            saveCartToStorage(state.cartItems);
         },
         clearCart: (state) => {
             state.cartItems = [];
+            saveCartToStorage([]);
         }
     }
 })
 
 
-export const { addToCart, removeFromCart, clearCart } = cartSlice.actions;
+export const { addToCart, removeFromCart, clearCart, updateQuantity } = cartSlice.actions;
 export default cartSlice.reducer;

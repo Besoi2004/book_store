@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import BookCard from '../books/BookCard'
 import { useFetchAllBooksQuery } from '../../redux/features/books/booksApi';
+import { CATEGORIES } from '../../utils/categories.jsx';
 
 // Import Swiper React components
 import { Swiper, SwiperSlide } from 'swiper/react';
@@ -13,41 +14,41 @@ import 'swiper/css/navigation';
 // import required modules
 import { Pagination, Navigation } from 'swiper/modules';
 
-const category = ["Chọn thể loại", "Kinh doanh", "Marketing", "Kinh dị", "Tiểu thuyết", "Phiêu lưu"];
-
 const TopSellers = () => {
     
-    const [selectedCategory, setSelectedCategory] = useState("Chọn thể loại");
+    const [selectedCategory, setSelectedCategory] = useState("all");
 
     const { data: books = [] } = useFetchAllBooksQuery();
     
-
-
-    // Map Vietnamese categories to English
-    const categoryMap = {
-        "Kinh doanh": "business",
-        "Sách": "books",
-        "Marketing": "marketing",
-        "Kinh dị": "horror",
-        "Tiểu thuyết": "fiction",
-        "Phiêu lưu": "adventure"
-    };
-
-    const filterBooks = selectedCategory === "Chọn thể loại"
+    const filterBooks = selectedCategory === "all"
         ? books
-        : books.filter(book => book.category === categoryMap[selectedCategory]);
+        : books.filter(book => book.category === selectedCategory);
 
     return (
-        <div className="py-10">
-            <h2 className="text-3xl font-semibold mb-6">Bán chạy</h2>
-            {/*cateory filtering*/}
-            <div className="mb-8 flex items-center">
+        <div className="py-16">
+            <div className="mb-10">
+                <div className="flex items-center gap-3 mb-4">
+                    <div className="w-1 h-8 bg-gradient-to-b from-secondary to-deep-purple rounded-full"></div>
+                    <h2 className="text-4xl font-bold bg-gradient-to-r from-secondary to-deep-purple bg-clip-text text-transparent">
+                        Bán chạy
+                    </h2>
+                </div>
+                <p className="text-gray-600 ml-4">Các đầu sách được yêu thích nhất</p>
+            </div>
+            
+            {/*category filtering*/}
+            <div className="mb-10 flex items-center gap-4">
+                <span className="text-gray-700 font-semibold">Lọc theo thể loại:</span>
                 <select
                     onChange={(e) => setSelectedCategory(e.target.value)}
-                    name="category" id="category" className="border bg-[#EAEAEA] border-gray-300 rounded-md px-4 py-2 focus:outline-none">
+                    name="category" 
+                    id="category" 
+                    className="bg-white border-2 border-gray-200 rounded-xl px-6 py-3 focus:outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20 transition-all duration-300 cursor-pointer shadow-soft hover:shadow-hover font-medium"
+                >
+                    <option value="all">Chọn thể loại</option>
                     {
-                        category.map((category, index) => (
-                            <option key={index} value={category}>{category}</option>
+                        CATEGORIES.map((cat) => (
+                            <option key={cat.value} value={cat.value}>{cat.label}</option>
                         ))
                     }
                 </select>

@@ -13,9 +13,22 @@ const bookSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  trending:{
-    type: Boolean,
-    default: false
+  author:{
+    type: String,
+    default: 'Đang cập nhật'
+  },
+  publisher:{
+    type: String,
+    default: 'Đang cập nhật'
+  },
+  publishedDate:{
+    type: Date,
+    default: null
+  },
+  status:{
+    type: String,
+    enum: ['flash-sale', null],
+    default: null
   },
   coverImage:{
     type: String,
@@ -28,6 +41,20 @@ const bookSchema = new mongoose.Schema({
   newPrice:{
     type: Number,
     required: true
+  },
+  stock:{
+    type: Number,
+    required: true,
+    default: 0
+  },
+  rewardPoints:{
+    type: Number,
+    required: true,
+    default: 0
+  },
+  favorites:{
+    type: Number,
+    default: 0
   },
   createdAt:{
     type: Date,

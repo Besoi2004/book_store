@@ -2,6 +2,11 @@ const Book = require("./book.model");
 
 const postABook = async (req, res) => {
     try {
+        // Kiểm tra giá bán không được cao hơn giá cũ
+        if (req.body.newPrice > req.body.oldPrice) {
+            return res.status(400).send({message: "Giá bán không được cao hơn giá cũ!"});
+        }
+        
         const newBook = new Book({...req.body});
         await newBook.save();
         res.status(200).send({message: "Book posted successfully", book: newBook});
@@ -38,6 +43,12 @@ const getSingleBook = async (req, res) => {
 const updateBook = async (req, res) => {
     try {
         const {id} = req.params;
+        
+        // Kiểm tra giá bán không được cao hơn giá cũ
+        if (req.body.newPrice && req.body.oldPrice && req.body.newPrice > req.body.oldPrice) {
+            return res.status(400).send({message: "Giá bán không được cao hơn giá cũ!"});
+        }
+        
         const updatedBook = await Book.findByIdAndUpdate(id, req.body, {new: true});
         if(!updatedBook){
             return res.status(404).send({message: "Book not found"});
@@ -63,10 +74,35 @@ const deleteBook = async (req, res) => {
     }
 };
 
+const toggleFavorite = async (req, res) => {
+    try {
+        const {id} = req.params;
+        const {increment} = req.body; // true to add favorite, false to remove
+        const book = await Book.findById(id);
+        if(!book){
+            return res.status(404).send({message: "Book not found"});
+        }
+        
+        // Increment or decrement favorites count
+        if(increment) {
+            book.favorites = (book.favorites || 0) + 1;
+        } else {
+            book.favorites = Math.max((book.favorites || 0) - 1, 0);
+        }
+        
+        await book.save();
+        res.status(200).send({message: "Favorites updated successfully", book: book});
+    } catch (error) {
+        console.error("Error updating favorites:", error);
+        res.status(500).send({message: "Failed to update favorites"});
+    }
+};
+
 module.exports = {
     postABook,
     getAllBooks,
     getSingleBook,
     updateBook,
-    deleteBook
+    deleteBook,
+    toggleFavorite
 };
