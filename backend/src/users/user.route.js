@@ -77,23 +77,6 @@ router.post("/create-admin", async (req, res) => {
     }
 })
 
-// Route to reset admin password (temporary - remove after use)
-router.post("/reset-admin-password", async (req, res) => {
-    const { username, newPassword, secretKey } = req.body;
-    if (secretKey !== process.env.JWT_SECRET_KEY) {
-        return res.status(403).send({ message: "Forbidden" });
-    }
-    try {
-        const admin = await User.findOne({ username, role: 'admin' });
-        if (!admin) return res.status(404).send({ message: "Admin not found" });
-        admin.password = newPassword;
-        await admin.save(); // triggers bcrypt pre-save hook
-        return res.status(200).json({ message: "Password reset successfully" });
-    } catch (error) {
-        res.status(500).send({ message: "Failed to reset password", error: error.message });
-    }
-});
-
 // Helper function to calculate tier based on rewardPoints
 const calculateTier = (rewardPoints) => {
     if (rewardPoints >= 5000) return 'diamond';
