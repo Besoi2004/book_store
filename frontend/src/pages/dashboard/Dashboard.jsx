@@ -1,11 +1,14 @@
 import axios from 'axios';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Doughnut } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip as ChartTooltip, Legend } from 'chart.js';
 import Loading from '../../components/Loading';
 import getBaseURL from '../../utils/baseURL';
 import { formatVND } from '../../utils/formatVND';
 import RevenueChart from './RevenueChart';
+import { useFetchAllBooksQuery, useFetchSoldStatsQuery } from '../../redux/features/books/booksApi';
+import { getImgUrl } from '../../utils/getImgUrl';
+import { getCategoryLabel } from '../../utils/categories.jsx';
 import {
     FiBook, FiShoppingCart, FiUsers, FiDollarSign,
     FiClock, FiCheckCircle, FiTruck, FiPackage, FiXCircle,
@@ -64,8 +67,11 @@ const Card = ({ title, icon, children, className = '' }) => (
     <div className={`bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden ${className}`}>
         {title && (
             <div className="flex items-center gap-2 px-6 py-4 border-b border-gray-100">
-                {icon && <span className="text-gray-400">{icon}</span>}
-                <h3 className="font-semibold text-gray-700 text-sm">{title}</h3>
+                {icon && <span className="text-gray-400 shrink-0">{icon}</span>}
+                {typeof title === 'string'
+                    ? <h3 className="font-semibold text-gray-700 text-sm">{title}</h3>
+                    : <div className="flex-1 font-semibold text-gray-700 text-sm">{title}</div>
+                }
             </div>
         )}
         {children}
@@ -90,6 +96,14 @@ const StatusRow = ({ status, count, total }) => {
 const Dashboard = () => {
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState({});
+    const [chartMode, setChartMode] = useState('monthly');
+    const [soldSearch, setSoldSearch] = useState('');
+    const [soldSort, setSoldSort] = useState({ key: 'sold', dir: 'desc' });
+    const [soldPage, setSoldPage] = useState(1);
+    const SOLD_PER_PAGE = 10;
+
+    const { data: allBooks = [] } = useFetchAllBooksQuery();
+    const { data: soldStats = {} } = useFetchSoldStatsQuery();
 
     useEffect(() => {
         (async () => {
@@ -105,6 +119,46 @@ const Dashboard = () => {
             }
         })();
     }, []);
+
+    const catStats = useMemo(() => {
+        const map = {};
+        (allBooks || []).forEach(b => {
+            const cat = b.category || 'other';
+            if (!map[cat]) map[cat] = { label: getCategoryLabel(cat), sold: 0, revenue: 0, count: 0 };
+            const s = soldStats[b._id] || 0;
+            map[cat].sold += s;
+            map[cat].revenue += s * (b.newPrice || 0);
+            map[cat].count += 1;
+        });
+        return Object.values(map).sort((a, b) => b.revenue - a.revenue);
+    }, [allBooks, soldStats]);
+
+    const handleSoldSort = (key) => {
+        setSoldSort(prev => prev.key === key ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'desc' });
+        setSoldPage(1);
+    };
+
+    const soldRows = useMemo(() => {
+        let rows = (allBooks || []).map(b => ({
+            ...b,
+            sold: soldStats[b._id] || 0,
+            revenue: (soldStats[b._id] || 0) * (b.newPrice || 0),
+        }));
+        if (soldSearch.trim()) {
+            const q = soldSearch.toLowerCase();
+            rows = rows.filter(b =>
+                b.title?.toLowerCase().includes(q) ||
+                b.author?.toLowerCase().includes(q)
+            );
+        }
+        rows.sort((a, b) => {
+            const av = a[soldSort.key];
+            const bv = b[soldSort.key];
+            if (typeof av === 'string') return soldSort.dir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+            return soldSort.dir === 'asc' ? (av || 0) - (bv || 0) : (bv || 0) - (av || 0);
+        });
+        return rows;
+    }, [allBooks, soldStats, soldSearch, soldSort]);
 
     if (loading) return <Loading />;
 
@@ -212,9 +266,39 @@ const Dashboard = () => {
 
             {/* Chart row: Revenue (2/3) + Order status doughnut (1/3) */}
             <div className="grid xl:grid-cols-3 gap-4">
-                <Card title="Doanh thu theo tháng" icon={<FiBarChart2 className="h-4 w-4" />} className="xl:col-span-2">
+                <Card
+                    title={
+                        <div className="flex items-center justify-between w-full">
+                            <span>{chartMode === 'monthly' ? 'Doanh thu theo tháng' : 'Doanh thu theo ngày (30 ngày qua)'}</span>
+                            <div className="flex gap-1 ml-3">
+                                <button
+                                    onClick={() => setChartMode('monthly')}
+                                    className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${
+                                        chartMode === 'monthly'
+                                            ? 'bg-purple-600 text-white shadow'
+                                            : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                                    }`}
+                                >Theo tháng</button>
+                                <button
+                                    onClick={() => setChartMode('daily')}
+                                    className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${
+                                        chartMode === 'daily'
+                                            ? 'bg-purple-600 text-white shadow'
+                                            : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                                    }`}
+                                >Theo ngày</button>
+                            </div>
+                        </div>
+                    }
+                    icon={<FiBarChart2 className="h-4 w-4" />}
+                    className="xl:col-span-2"
+                >
                     <div className="p-5">
-                        <RevenueChart monthlySales={data?.monthlySales || []} />
+                        <RevenueChart
+                            monthlySales={data?.monthlySales || []}
+                            dailySales={data?.dailySales || []}
+                            mode={chartMode}
+                        />
                     </div>
                 </Card>
 
@@ -236,48 +320,74 @@ const Dashboard = () => {
                 </Card>
             </div>
 
-            {/* Middle row: Top books (2/3) + Tier & Payment (1/3) */}
+            {/* Middle row: Category stats (2/3) + Tier & Payment (1/3) */}
             <div className="grid xl:grid-cols-3 gap-4">
-                <Card title="Top 5 sách bán chạy nhất" icon={<FiBook className="h-4 w-4" />} className="xl:col-span-2">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="bg-gray-50/80 text-gray-400 text-xs uppercase">
-                                    <th className="pl-5 pr-2 py-3 text-left font-semibold w-10">#</th>
-                                    <th className="px-3 py-3 text-left font-semibold">Tên sách</th>
-                                    <th className="px-3 py-3 text-right font-semibold">Đã bán</th>
-                                    <th className="px-5 py-3 text-right font-semibold">Doanh thu</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {(data?.topSellingBooks || []).length === 0 && (
-                                    <tr>
-                                        <td colSpan={4} className="py-10 text-center text-gray-400 text-sm">Chưa có dữ liệu bán hàng</td>
-                                    </tr>
-                                )}
-                                {(data?.topSellingBooks || []).map((book, i) => (
-                                    <tr key={book._id} className="hover:bg-gray-50/60 transition-colors">
-                                        <td className="pl-5 pr-2 py-3.5">
-                                            <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${
-                                                i === 0 ? 'bg-yellow-400 text-white' :
-                                                i === 1 ? 'bg-slate-300 text-white' :
-                                                i === 2 ? 'bg-amber-600 text-white' :
-                                                'bg-gray-100 text-gray-500'
-                                            }`}>{i + 1}</span>
-                                        </td>
-                                        <td className="px-3 py-3.5 font-medium text-gray-800 max-w-xs">
-                                            <span className="line-clamp-1">{book.title}</span>
-                                        </td>
-                                        <td className="px-3 py-3.5 text-right">
-                                            <span className="font-bold text-blue-600">{book.totalSold}</span>
-                                            <span className="text-gray-400 text-xs ml-1">cuốn</span>
-                                        </td>
-                                        <td className="px-5 py-3.5 text-right font-semibold text-green-600">{formatVND(book.revenue)}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                <Card title="Doanh thu theo danh mục" icon={<FiBook className="h-4 w-4" />} className="xl:col-span-2">
+                    {catStats.length === 0 && (
+                        <p className="text-center text-gray-400 text-sm py-10">Chưa có dữ liệu</p>
+                    )}
+                    {catStats.length > 0 && (() => {
+                        const maxRevenue = catStats[0]?.revenue || 1;
+                        const totalSoldAll = catStats.reduce((s, c) => s + c.sold, 0);
+                        const BAR_COLORS = [
+                            'from-purple-500 to-indigo-400',
+                            'from-blue-500 to-cyan-400',
+                            'from-emerald-500 to-teal-400',
+                            'from-amber-500 to-yellow-400',
+                            'from-rose-500 to-pink-400',
+                            'from-orange-500 to-amber-400',
+                            'from-sky-500 to-blue-400',
+                            'from-violet-500 to-purple-400',
+                        ];
+                        return (
+                            <div className="px-6 pt-2 pb-5">
+                                {/* Summary pills */}
+                                <div className="flex flex-wrap gap-2 mb-4">
+                                    <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200 rounded-lg px-3 py-1">
+                                        <FiBook className="h-3.5 w-3.5" />
+                                        {catStats.length} danh mục
+                                    </span>
+                                    <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 rounded-lg px-3 py-1">
+                                        <FiShoppingCart className="h-3.5 w-3.5" />
+                                        {totalSoldAll} cuốn đã bán
+                                    </span>
+                                    <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-green-50 text-green-700 border border-green-200 rounded-lg px-3 py-1">
+                                        <FiDollarSign className="h-3.5 w-3.5" />
+                                        {formatVND(catStats.reduce((s, c) => s + c.revenue, 0))} tổng
+                                    </span>
+                                </div>
+
+                                {/* Bars */}
+                                <div className="space-y-4">
+                                    {catStats.map((cat, idx) => {
+                                        const pct = Math.max(4, Math.round((cat.revenue / maxRevenue) * 100));
+                                        const color = BAR_COLORS[idx % BAR_COLORS.length];
+                                        return (
+                                            <div key={cat.label}>
+                                                <div className="flex items-center justify-between mb-1.5">
+                                                    <div className="flex items-center gap-2 min-w-0">
+                                                        <span className={`shrink-0 inline-block w-2.5 h-2.5 rounded-sm bg-gradient-to-br ${color}`} />
+                                                        <span className="text-sm font-semibold text-gray-700 truncate">{cat.label}</span>
+                                                        <span className="text-xs text-gray-400 shrink-0">{cat.count} đầu sách</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-4 shrink-0 ml-4">
+                                                        <span className="text-xs text-blue-600 font-bold">{cat.sold} cuốn</span>
+                                                        <span className="text-xs text-green-600 font-semibold w-28 text-right">{formatVND(cat.revenue)}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                                                    <div
+                                                        className={`h-2.5 rounded-full bg-gradient-to-r ${color} transition-all duration-500`}
+                                                        style={{ width: `${pct}%` }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        );
+                    })()}
                 </Card>
 
                 <div className="flex flex-col gap-4">
@@ -336,6 +446,143 @@ const Dashboard = () => {
                     </Card>
                 </div>
             </div>
+
+            {/* All books sold stats */}
+            {(() => {
+                const totalPages = Math.max(1, Math.ceil(soldRows.length / SOLD_PER_PAGE));
+                const pageRows = soldRows.slice((soldPage - 1) * SOLD_PER_PAGE, soldPage * SOLD_PER_PAGE);
+                const SortTh = ({ label, sortKey, className = '' }) => {
+                    const active = soldSort.key === sortKey;
+                    return (
+                        <th
+                            onClick={() => handleSoldSort(sortKey)}
+                            className={`px-3 py-3 font-semibold cursor-pointer select-none hover:text-purple-600 transition-colors ${className}`}
+                        >
+                            <span className="inline-flex items-center gap-1">
+                                {label}
+                                <span className={`text-xs ${active ? 'text-purple-500' : 'text-gray-300'}`}>
+                                    {active ? (soldSort.dir === 'asc' ? '▲' : '▼') : '⇅'}
+                                </span>
+                            </span>
+                        </th>
+                    );
+                };
+                return (
+                    <Card title="Thống kê bán theo đầu sách" icon={<FiBook className="h-4 w-4" />}>
+                        {/* Toolbar */}
+                        <div className="px-5 py-3 border-b border-gray-100 flex flex-wrap items-center gap-3">
+                            <input
+                                type="text"
+                                placeholder="Tìm theo tên sách hoặc tác giả..."
+                                value={soldSearch}
+                                onChange={e => { setSoldSearch(e.target.value); setSoldPage(1); }}
+                                className="flex-1 min-w-[200px] max-w-sm text-sm border border-gray-200 rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-purple-200"
+                            />
+                            <span className="text-xs text-gray-400 shrink-0">{soldRows.length} sách</span>
+                        </div>
+
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="bg-gray-50/80 text-gray-400 text-xs uppercase">
+                                        <th className="pl-5 pr-2 py-3 text-left font-semibold w-10">#</th>
+                                        <th className="px-3 py-3 text-left font-semibold">Ảnh</th>
+                                        <SortTh label="Tên sách" sortKey="title" className="text-left" />
+                                        <SortTh label="Tác giả" sortKey="author" className="text-left hidden md:table-cell" />
+                                        <SortTh label="Giá bán" sortKey="newPrice" className="text-right" />
+                                        <SortTh label="Đã bán" sortKey="sold" className="text-right" />
+                                        <SortTh label="Doanh thu" sortKey="revenue" className="text-right" />
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {pageRows.length === 0 && (
+                                        <tr>
+                                            <td colSpan={7} className="py-10 text-center text-gray-400">Không có dữ liệu</td>
+                                        </tr>
+                                    )}
+                                    {pageRows.map((book, i) => (
+                                        <tr key={book._id} className="hover:bg-gray-50/60 transition-colors">
+                                            <td className="pl-5 pr-2 py-3 text-xs text-gray-400">
+                                                {(soldPage - 1) * SOLD_PER_PAGE + i + 1}
+                                            </td>
+                                            <td className="px-3 py-2">
+                                                <img src={getImgUrl(book.coverImage)} alt={book.title}
+                                                    className="h-12 w-9 object-cover rounded shadow-sm" />
+                                            </td>
+                                            <td className="px-3 py-3 font-medium text-gray-800 max-w-xs">
+                                                <span className="line-clamp-2">{book.title}</span>
+                                            </td>
+                                            <td className="px-3 py-3 text-gray-500 text-xs hidden md:table-cell">{book.author || '—'}</td>
+                                            <td className="px-3 py-3 text-right text-xs text-purple-600 font-semibold">{formatVND(book.newPrice)}</td>
+                                            <td className="px-3 py-3 text-right">
+                                                <span className="font-bold text-blue-600">{book.sold}</span>
+                                                <span className="text-gray-400 text-xs ml-1">cuốn</span>
+                                            </td>
+                                            <td className="px-3 py-3 text-right font-semibold text-green-600 text-xs">
+                                                {formatVND(book.revenue)}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Pagination */}
+                        {totalPages > 1 && (
+                            <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100">
+                                <span className="text-xs text-gray-400">
+                                    Trang {soldPage} / {totalPages}
+                                </span>
+                                <div className="flex items-center gap-1">
+                                    <button
+                                        onClick={() => setSoldPage(1)}
+                                        disabled={soldPage === 1}
+                                        className="px-2 py-1 text-xs rounded-lg border border-gray-200 disabled:opacity-30 hover:bg-gray-50"
+                                    >«</button>
+                                    <button
+                                        onClick={() => setSoldPage(p => Math.max(1, p - 1))}
+                                        disabled={soldPage === 1}
+                                        className="px-2.5 py-1 text-xs rounded-lg border border-gray-200 disabled:opacity-30 hover:bg-gray-50"
+                                    >‹</button>
+                                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                                        .filter(p => p === 1 || p === totalPages || Math.abs(p - soldPage) <= 1)
+                                        .reduce((acc, p, idx, arr) => {
+                                            if (idx > 0 && p - arr[idx - 1] > 1) acc.push('...');
+                                            acc.push(p);
+                                            return acc;
+                                        }, [])
+                                        .map((p, idx) =>
+                                            p === '...' ? (
+                                                <span key={`e${idx}`} className="px-1 text-xs text-gray-400">…</span>
+                                            ) : (
+                                                <button
+                                                    key={p}
+                                                    onClick={() => setSoldPage(p)}
+                                                    className={`px-2.5 py-1 text-xs rounded-lg border transition-all ${
+                                                        p === soldPage
+                                                            ? 'bg-purple-600 text-white border-purple-600'
+                                                            : 'border-gray-200 hover:bg-gray-50 text-gray-600'
+                                                    }`}
+                                                >{p}</button>
+                                            )
+                                        )
+                                    }
+                                    <button
+                                        onClick={() => setSoldPage(p => Math.min(totalPages, p + 1))}
+                                        disabled={soldPage === totalPages}
+                                        className="px-2.5 py-1 text-xs rounded-lg border border-gray-200 disabled:opacity-30 hover:bg-gray-50"
+                                    >›</button>
+                                    <button
+                                        onClick={() => setSoldPage(totalPages)}
+                                        disabled={soldPage === totalPages}
+                                        className="px-2 py-1 text-xs rounded-lg border border-gray-200 disabled:opacity-30 hover:bg-gray-50"
+                                    >»</button>
+                                </div>
+                            </div>
+                        )}
+                    </Card>
+                );
+            })()}
 
             {/* Recent orders — full width table */}
             <Card title="Đơn hàng gần đây" icon={<FiShoppingCart className="h-4 w-4" />}>

@@ -37,6 +37,7 @@ const Checkout = () => {
             name: data.name,
             email: currentUser?.email,
             address:{
+                street: data.address,
                 city: data.city,
                 state: data.state,
                 country: data.country,

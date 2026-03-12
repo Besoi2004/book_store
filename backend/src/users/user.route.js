@@ -2,6 +2,7 @@ const express = require('express');
 const User = require('./user.model');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const verifyAdminToken = require('../middleware/verifyAdminToken');
 
 const router =  express.Router();
 
@@ -10,7 +11,11 @@ const JWT_SECRET = process.env.JWT_SECRET_KEY
 router.post("/admin", async (req, res) => {
     const {username, password} = req.body;
     try {
-        const admin =  await User.findOne({username});
+        // Search by username OR email
+        const admin = await User.findOne({
+            $or: [{ username }, { email: username }],
+            role: 'admin'
+        });
         if(!admin) {
             return res.status(404).send({message: "Admin not found!"})
         }
@@ -42,14 +47,14 @@ router.post("/admin", async (req, res) => {
     }
 })
 
-// Route to create admin user (for initial setup - remove in production)
-router.post("/create-admin", async (req, res) => {
+// Route to create admin user
+router.post("/create-admin", verifyAdminToken, async (req, res) => {
     const {username, email, password} = req.body;
     try {
-        // Check if admin already exists
-        const existingAdmin = await User.findOne({username});
+        // Check if username or email already exists
+        const existingAdmin = await User.findOne({ $or: [{ username }, { email }] });
         if(existingAdmin) {
-            return res.status(400).send({message: "Admin already exists!"})
+            return res.status(400).send({message: "Tên đăng nhập hoặc email đã tồn tại!"})
         }
         
         // Create new admin
@@ -273,7 +278,7 @@ router.post("/:email/favorites/:bookId", async (req, res) => {
 });
 
 // Update user role (Admin only)
-router.put("/:id/role", async (req, res) => {
+router.put("/:id/role", verifyAdminToken, async (req, res) => {
     const { id } = req.params;
     const { role } = req.body;
     
@@ -288,10 +293,20 @@ router.put("/:id/role", async (req, res) => {
         }
         
         user.role = role;
+
+        // When promoting to admin, generate a new known password so they can log in
+        let generatedPassword = null;
+        if (role === 'admin') {
+            const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+            generatedPassword = Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+            user.password = await bcrypt.hash(generatedPassword, 10);
+        }
+
         await user.save();
         
         return res.status(200).json({
             message: "User role updated successfully",
+            generatedPassword,
             user: {
                 _id: user._id,
                 username: user.username,
@@ -306,7 +321,7 @@ router.put("/:id/role", async (req, res) => {
 });
 
 // Delete user (Admin only)
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", verifyAdminToken, async (req, res) => {
     const { id } = req.params;
     
     try {

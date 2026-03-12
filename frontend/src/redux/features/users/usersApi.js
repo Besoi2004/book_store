@@ -75,7 +75,15 @@ const usersApi = createApi({
                 method: 'POST',
                 body: { rankId },
             }),
-            invalidatesTags: ['Users'], 
+            invalidatesTags: ['Users'],
+        }),
+        createAdmin: builder.mutation({
+            query: (data) => ({
+                url: '/create-admin',
+                method: 'POST',
+                body: data,
+            }),
+            invalidatesTags: ['Users'],
         }),
     }),
 });
@@ -89,7 +97,8 @@ export const {
     useAddRewardPointsMutation,
     useGetUserFavoritesQuery,
     useToggleFavoriteBookMutation,
-    useRevealRankCouponMutation
+    useRevealRankCouponMutation,
+    useCreateAdminMutation,
 } = usersApi;
 
 export default usersApi;

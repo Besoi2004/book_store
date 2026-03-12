@@ -143,8 +143,12 @@ const AddCoupon = () => {
                                         message: 'Mã chỉ được chứa chữ in hoa và số'
                                     }
                                 })}
+                                onChange={(e) => {
+                                    e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                                    setValue('code', e.target.value, { shouldValidate: true });
+                                }}
                                 placeholder="VD: SUMMER2024"
-                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all uppercase"
+                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all font-mono tracking-widest"
                             />
                             {errors.code && <p className="text-red-500 text-xs mt-1">{errors.code.message}</p>}
                         </div>

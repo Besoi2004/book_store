@@ -13,10 +13,11 @@ const Shop = () => {
     const categoryParam = searchParams.get('category')
     
     const [searchTerm, setSearchTerm] = useState('')
-    const [searchType, setSearchType] = useState('all')
     const [sortBy, setSortBy] = useState('newest')
     const [filterCategory, setFilterCategory] = useState(categoryParam || 'all')
     const [viewMode, setViewMode] = useState('grid')
+    const [currentPage, setCurrentPage] = useState(1)
+    const BOOKS_PER_PAGE = 20
 
     // Sync filterCategory with URL param when it changes
     useEffect(() => {
@@ -36,17 +37,12 @@ const Shop = () => {
         // Search filter
         if (searchTerm) {
             const lower = searchTerm.toLowerCase()
-            result = result.filter(book => {
-                if (searchType === 'author') return book.author?.toLowerCase().includes(lower)
-                if (searchType === 'publisher') return book.publisher?.toLowerCase().includes(lower)
-                // 'all' - search title, author, publisher
-                return (
-                    book.title.toLowerCase().includes(lower) ||
-                    book.author?.toLowerCase().includes(lower) ||
-                    book.publisher?.toLowerCase().includes(lower) ||
-                    book.description?.toLowerCase().includes(lower)
-                )
-            })
+            result = result.filter(book =>
+                book.title.toLowerCase().includes(lower) ||
+                book.author?.toLowerCase().includes(lower) ||
+                book.publisher?.toLowerCase().includes(lower) ||
+                book.description?.toLowerCase().includes(lower)
+            )
         }
 
         // Category filter
@@ -78,7 +74,18 @@ const Shop = () => {
         }
 
         return result
-    }, [books, searchTerm, searchType, filterCategory, sortBy])
+    }, [books, searchTerm, filterCategory, sortBy])
+
+    // Reset to page 1 whenever filters/sort change
+    useEffect(() => {
+        setCurrentPage(1)
+    }, [searchTerm, filterCategory, sortBy])
+
+    const totalPages = Math.ceil(filteredBooks.length / BOOKS_PER_PAGE)
+    const paginatedBooks = filteredBooks.slice(
+        (currentPage - 1) * BOOKS_PER_PAGE,
+        currentPage * BOOKS_PER_PAGE
+    )
 
     if (isLoading) return <Loading />
     if (isError) return (
@@ -103,32 +110,17 @@ const Shop = () => {
                 {/* Filters Bar */}
                 <div className="bg-white rounded-2xl shadow-lg p-4 md:p-6 mb-8">
                     <div className="flex flex-col lg:flex-row gap-4">
-                        {/* Search with type selector */}
+                        {/* Search */}
                         <div className="flex-1">
-                            <div className="flex gap-2">
-                                <select
-                                    value={searchType}
-                                    onChange={(e) => setSearchType(e.target.value)}
-                                    className="px-3 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition-all bg-white text-sm whitespace-nowrap flex-shrink-0"
-                                >
-                                    <option value="all">Tất cả</option>
-                                    <option value="author">Tác giả</option>
-                                    <option value="publisher">NXB</option>
-                                </select>
-                                <div className="relative flex-1">
-                                    <FiSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                                    <input
-                                        type="text"
-                                        placeholder={
-                                            searchType === 'author' ? 'Tìm theo tác giả...' :
-                                            searchType === 'publisher' ? 'Tìm theo nhà xuất bản...' :
-                                            'Tìm kiếm sách, tác giả, NXB...'
-                                        }
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition-all"
-                                    />
-                                </div>
+                            <div className="relative">
+                                <FiSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                                <input
+                                    type="text"
+                                    placeholder="Tìm kiếm sách, tác giả, NXB..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition-all"
+                                />
                             </div>
                         </div>
 
@@ -177,7 +169,7 @@ const Shop = () => {
                         <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-200">
                             {searchTerm && (
                                 <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm flex items-center gap-2">
-                                    {searchType === 'author' ? 'Tác giả' : searchType === 'publisher' ? 'NXB' : 'Tìm kiếm'}: "{searchTerm}"
+                                    Tìm kiếm: "{searchTerm}"
                                     <button onClick={() => setSearchTerm('')} className="hover:text-purple-900 font-bold">×</button>
                                 </span>
                             )}
@@ -197,11 +189,11 @@ const Shop = () => {
                 {/* Results Count */}
                 <div className="mb-6">
                     <p className="text-gray-600">
-                        Hiển thị <span className="font-semibold text-gray-900">{filteredBooks.length}</span> kết quả
+                        Hiển thị <span className="font-semibold text-gray-900">
+                            {Math.min((currentPage - 1) * BOOKS_PER_PAGE + 1, filteredBooks.length)}–{Math.min(currentPage * BOOKS_PER_PAGE, filteredBooks.length)}
+                        </span> / <span className="font-semibold text-gray-900">{filteredBooks.length}</span> kết quả
                         {filterCategory !== 'all' && ` trong danh mục "${getCategoryLabel(filterCategory)}"`}
-                        {searchTerm && searchType === 'author' && ` của tác giả "${searchTerm}"`}
-                        {searchTerm && searchType === 'publisher' && ` của NXB "${searchTerm}"`}
-                        {searchTerm && searchType === 'all' && ` cho "${searchTerm}"`}
+                        {searchTerm && ` cho "${searchTerm}"`}
                     </p>
                 </div>
 
@@ -227,15 +219,64 @@ const Shop = () => {
                         </button>
                     </div>
                 ) : (
-                    <div className={`grid gap-6 ${
-                        viewMode === 'grid' 
-                            ? 'grid-cols-1 lg:grid-cols-2 xl:grid-cols-3' 
-                            : 'grid-cols-1'
-                    }`}>
-                        {filteredBooks.map((book) => (
-                            <BookCard key={book._id} book={book} />
-                        ))}
-                    </div>
+                    <>
+                        <div className={`grid gap-6 ${
+                            viewMode === 'grid' 
+                                ? 'grid-cols-1 lg:grid-cols-2 xl:grid-cols-3' 
+                                : 'grid-cols-1'
+                        }`}>
+                            {paginatedBooks.map((book) => (
+                                <BookCard key={book._id} book={book} />
+                            ))}
+                        </div>
+
+                        {/* Pagination */}
+                        {totalPages > 1 && (
+                            <div className="flex items-center justify-center gap-2 mt-10">
+                                <button
+                                    onClick={() => { setCurrentPage(p => Math.max(p - 1, 1)); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+                                    disabled={currentPage === 1}
+                                    className="px-4 py-2 rounded-xl border-2 border-gray-200 text-gray-600 hover:border-purple-400 hover:text-purple-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                                >
+                                    ‹ Trước
+                                </button>
+
+                                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                                    .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 2)
+                                    .reduce((acc, p, idx, arr) => {
+                                        if (idx > 0 && p - arr[idx - 1] > 1) acc.push('...')
+                                        acc.push(p)
+                                        return acc
+                                    }, [])
+                                    .map((item, idx) =>
+                                        item === '...' ? (
+                                            <span key={`ellipsis-${idx}`} className="px-2 text-gray-400">…</span>
+                                        ) : (
+                                            <button
+                                                key={item}
+                                                onClick={() => { setCurrentPage(item); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+                                                className={`w-10 h-10 rounded-xl border-2 font-semibold transition-all ${
+                                                    currentPage === item
+                                                        ? 'border-purple-500 bg-purple-500 text-white shadow-md'
+                                                        : 'border-gray-200 text-gray-600 hover:border-purple-400 hover:text-purple-600'
+                                                }`}
+                                            >
+                                                {item}
+                                            </button>
+                                        )
+                                    )
+                                }
+
+                                <button
+                                    onClick={() => { setCurrentPage(p => Math.min(p + 1, totalPages)); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+                                    disabled={currentPage === totalPages}
+                                    className="px-4 py-2 rounded-xl border-2 border-gray-200 text-gray-600 hover:border-purple-400 hover:text-purple-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                                >
+                                    Sau ›
+                                </button>
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
         </div>

@@ -153,13 +153,13 @@ const Login = () => {
                             <>
                                 <div>
                                     <label className="block text-gray-700 text-sm font-semibold mb-2" htmlFor="username">
-                                        Tên đăng nhập
+                                        Tên đăng nhập hoặc Email
                                     </label>
                                     <input {...register("username", { required: "Tên đăng nhập là bắt buộc" })}
                                         className={`w-full px-4 py-3 border-2 rounded-lg text-gray-700 leading-tight focus:outline-none focus:border-secondary transition-all duration-300 ${errors.username ? 'border-red-500' : 'border-gray-200'}`}
                                         id="username"
                                         type="text"
-                                        placeholder="admin"
+                                        placeholder="Tên đăng nhập hoặc email"
                                     />
                                     {errors.username && <p className="text-red-500 text-xs mt-1">{errors.username.message}</p>}
                                 </div>

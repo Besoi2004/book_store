@@ -545,12 +545,15 @@ const ManageOrders = () => {
                                                                 </div>
                                                                 <div className="border-t border-gray-100 pt-2">
                                                                     <span className="text-gray-500 block mb-1">Địa chỉ giao hàng:</span>
-                                                                    <p className="text-gray-900 bg-gray-50 p-2 rounded-lg text-xs leading-relaxed">
-                                                                        {[order.address?.city, order.address?.state, order.address?.country].filter(Boolean).join(', ')}
-                                                                        {order.address?.zipcode && (
-                                                                            <span className="text-gray-500"> — {order.address.zipcode}</span>
+                                                                    <div className="text-gray-900 bg-gray-50 p-2 rounded-lg text-xs leading-relaxed space-y-0.5">
+                                                                        {order.address?.street && <p className="font-medium">{order.address.street}</p>}
+                                                                        {(order.address?.ward || order.address?.district) && (
+                                                                            <p className="text-gray-600">{[order.address.ward, order.address.district].filter(Boolean).join(', ')}</p>
                                                                         )}
-                                                                    </p>
+                                                                        <p className="text-gray-600">
+                                                                            {[order.address?.city, order.address?.country].filter(Boolean).join(', ')}
+                                                                        </p>
+                                                                    </div>
                                                                 </div>
                                                                 <div className="flex justify-between items-center border-t border-gray-100 pt-2">
                                                                     <span className="text-gray-500">Thanh toán:</span>

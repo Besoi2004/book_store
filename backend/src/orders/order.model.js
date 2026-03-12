@@ -4,10 +4,11 @@ const orderSchema = new mongoose.Schema({
     name: { type: String, required: true },
     email: { type: String, required: true },
     address: { 
+        street: String,
+        ward: String,
+        district: String,
         city: { type: String, required: true },
-        state: String,
         country: String,
-        zipcode: String,
     },
     phone:{ type: String, required: true },
     productIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Book', required: true }],

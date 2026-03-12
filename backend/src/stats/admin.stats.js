@@ -14,6 +14,7 @@ router.get("/", async (req, res) => {
             totalUsers,
             ordersByStatus,
             monthlySales,
+            dailySales,
             recentOrders,
             topSellingBooks,
             userTierStats,
@@ -22,14 +23,26 @@ router.get("/", async (req, res) => {
             outOfStockCount,
         ] = await Promise.all([
             Order.countDocuments(),
-            Order.aggregate([{ $group: { _id: null, totalSales: { $sum: "$totalPrice" } } }]),
+            Order.aggregate([{ $match: { status: 'delivered' } }, { $group: { _id: null, totalSales: { $sum: "$totalPrice" } } }]),
             Book.countDocuments(),
             User.countDocuments({ role: 'user' }),
             Order.aggregate([{ $group: { _id: "$status", count: { $sum: 1 } } }]),
             Order.aggregate([
+                { $match: { status: 'delivered' } },
                 {
                     $group: {
                         _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
+                        totalSales: { $sum: "$totalPrice" },
+                        totalOrders: { $sum: 1 }
+                    }
+                },
+                { $sort: { _id: 1 } }
+            ]),
+            Order.aggregate([
+                { $match: { status: 'delivered', createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } } },
+                {
+                    $group: {
+                        _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
                         totalSales: { $sum: "$totalPrice" },
                         totalOrders: { $sum: 1 }
                     }
@@ -41,7 +54,7 @@ router.get("/", async (req, res) => {
                 .limit(8)
                 .select('name email totalPrice status createdAt paymentMethod'),
             Order.aggregate([
-                { $match: { "products.0": { $exists: true } } },
+                { $match: { status: 'delivered', "products.0": { $exists: true } } },
                 { $unwind: "$products" },
                 {
                     $group: {
@@ -59,6 +72,7 @@ router.get("/", async (req, res) => {
                 { $group: { _id: "$tier", count: { $sum: 1 } } }
             ]),
             Order.aggregate([
+                { $match: { status: 'delivered' } },
                 { $group: { _id: "$paymentMethod", count: { $sum: 1 }, total: { $sum: "$totalPrice" } } }
             ]),
             Book.find({ stock: { $gt: 0, $lt: 10 } })
@@ -75,6 +89,7 @@ router.get("/", async (req, res) => {
             totalUsers,
             ordersByStatus,
             monthlySales,
+            dailySales,
             recentOrders,
             topSellingBooks,
             userTierStats,

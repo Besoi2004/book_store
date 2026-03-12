@@ -1,12 +1,19 @@
 import React, { useState, useMemo } from 'react'
-import { useDeleteUserMutation, useFetchAllUsersQuery, useUpdateUserRoleMutation } from '../../../redux/features/users/usersApi';
-import { FaUsers, FaSearch, FaUserShield, FaUser, FaCrown, FaTrash, FaUserEdit } from 'react-icons/fa';
+import { useDeleteUserMutation, useFetchAllUsersQuery, useCreateAdminMutation } from '../../../redux/features/users/usersApi';
+import { FaUsers, FaSearch, FaUserShield, FaUser, FaCrown, FaTrash, FaUserPlus } from 'react-icons/fa';
 import { MdFilterList } from 'react-icons/md';
+import Swal from 'sweetalert2';
 
 const ManageUsers = () => {
     const { data: users, refetch } = useFetchAllUsersQuery();
     const [deleteUser] = useDeleteUserMutation();
-    const [updateUserRole] = useUpdateUserRoleMutation();
+    const [createAdmin] = useCreateAdminMutation();
+
+    // Create admin modal state
+    const [showCreateAdmin, setShowCreateAdmin] = useState(false);
+    const [adminForm, setAdminForm] = useState({ username: '', email: '', password: '', confirmPassword: '' });
+    const [adminFormError, setAdminFormError] = useState('');
+    const [isCreating, setIsCreating] = useState(false);
 
     // Filter states
     const [searchQuery, setSearchQuery] = useState('');
@@ -52,36 +59,62 @@ const ManageUsers = () => {
         setSelectedTier('all');
     };
 
-    // Handle deleting a user
-    const handleDeleteUser = async (id, username) => {
-        const confirmDelete = window.confirm(`Bạn có chắc chắn muốn xóa người dùng "${username}"?`);
-        if (!confirmDelete) return;
-
+    // Handle creating admin account
+    const handleCreateAdmin = async (e) => {
+        e.preventDefault();
+        setAdminFormError('');
+        if (adminForm.password !== adminForm.confirmPassword) {
+            setAdminFormError('Mật khẩu xác nhận không khớp!');
+            return;
+        }
+        if (adminForm.password.length < 6) {
+            setAdminFormError('Mật khẩu phải có ít nhất 6 ký tự!');
+            return;
+        }
+        setIsCreating(true);
         try {
-            await deleteUser(id).unwrap();
-            alert('Xóa người dùng thành công!');
+            await createAdmin({
+                username: adminForm.username,
+                email: adminForm.email,
+                password: adminForm.password,
+            }).unwrap();
+            setShowCreateAdmin(false);
+            setAdminForm({ username: '', email: '', password: '', confirmPassword: '' });
+            Swal.fire({
+                icon: 'success',
+                title: 'Tạo thành công!',
+                html: `Tài khoản admin <strong>${adminForm.username}</strong> đã được tạo.`,
+                timer: 2000,
+                showConfirmButton: false,
+            });
             refetch();
-        } catch (error) {
-            console.error('Failed to delete user:', error);
-            alert(error.data?.message || 'Xóa người dùng thất bại. Vui lòng thử lại.');
+        } catch (err) {
+            setAdminFormError(err?.data?.message || 'Tạo thất bại. Vui lòng thử lại.');
+        } finally {
+            setIsCreating(false);
         }
     };
 
-    // Handle changing user role
-    const handleChangeRole = async (id, currentRole, username) => {
-        const newRole = currentRole === 'user' ? 'admin' : 'user';
-        const confirmChange = window.confirm(
-            `Bạn có chắc chắn muốn thay đổi vai trò của "${username}" từ ${currentRole} sang ${newRole}?`
-        );
-        if (!confirmChange) return;
+    // Handle deleting a user
+    const handleDeleteUser = async (id, username) => {        const result = await Swal.fire({
+            title: 'Xóa người dùng?',
+            html: `Bạn có chắc chắn muốn xóa <strong>${username}</strong>? Hành động này không thể hoàn tác.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#EF4444',
+            cancelButtonColor: '#6B7280',
+            confirmButtonText: 'Xóa',
+            cancelButtonText: 'Hủy',
+        });
+        if (!result.isConfirmed) return;
 
         try {
-            await updateUserRole({ id, role: newRole }).unwrap();
-            alert(`Cập nhật vai trò thành công!`);
+            await deleteUser(id).unwrap();
+            Swal.fire({ icon: 'success', title: 'Xóa thành công!', text: `Người dùng “${username}” đã bị xóa.`, timer: 1500, showConfirmButton: false });
             refetch();
         } catch (error) {
-            console.error('Failed to update user role:', error);
-            alert('Cập nhật vai trò thất bại. Vui lòng thử lại.');
+            console.error('Failed to delete user:', error);
+            Swal.fire({ icon: 'error', title: 'Xóa thất bại!', text: error?.data?.message || 'Vui lòng thử lại.' });
         }
     };
 
@@ -114,6 +147,77 @@ const ManageUsers = () => {
 
     return (
         <>
+            {/* Create Admin Modal */}
+            {showCreateAdmin && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
+                        <div className="flex items-center justify-between mb-5">
+                            <div className="flex items-center gap-2">
+                                <FaUserShield className="text-purple-600 h-5 w-5" />
+                                <h2 className="text-lg font-bold text-gray-800">Tạo tài khoản Admin</h2>
+                            </div>
+                            <button onClick={() => { setShowCreateAdmin(false); setAdminFormError(''); }}
+                                className="text-gray-400 hover:text-gray-600 transition-colors text-xl font-bold">&times;</button>
+                        </div>
+                        <form onSubmit={handleCreateAdmin} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Tên đăng nhập</label>
+                                <input
+                                    type="text" required
+                                    value={adminForm.username}
+                                    onChange={e => setAdminForm(f => ({ ...f, username: e.target.value }))}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-400 outline-none text-sm"
+                                    placeholder="admin2"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                <input
+                                    type="email" required
+                                    value={adminForm.email}
+                                    onChange={e => setAdminForm(f => ({ ...f, email: e.target.value }))}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-400 outline-none text-sm"
+                                    placeholder="admin2@example.com"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Mật khẩu</label>
+                                <input
+                                    type="password" required
+                                    value={adminForm.password}
+                                    onChange={e => setAdminForm(f => ({ ...f, password: e.target.value }))}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-400 outline-none text-sm"
+                                    placeholder="ít nhất 6 ký tự"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Xác nhận mật khẩu</label>
+                                <input
+                                    type="password" required
+                                    value={adminForm.confirmPassword}
+                                    onChange={e => setAdminForm(f => ({ ...f, confirmPassword: e.target.value }))}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-400 outline-none text-sm"
+                                    placeholder="nhập lại mật khẩu"
+                                />
+                            </div>
+                            {adminFormError && (
+                                <p className="text-red-500 text-sm bg-red-50 border border-red-200 rounded-lg px-3 py-2">{adminFormError}</p>
+                            )}
+                            <div className="flex gap-3 pt-2">
+                                <button type="button" onClick={() => { setShowCreateAdmin(false); setAdminFormError(''); }}
+                                    className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all">
+                                    Hủy
+                                </button>
+                                <button type="submit" disabled={isCreating}
+                                    className="flex-1 px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 rounded-lg transition-all inline-flex items-center justify-center gap-2">
+                                    <FaUserPlus className="h-4 w-4" />
+                                    {isCreating ? 'Đang tạo...' : 'Tạo Admin'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
             {/* Page Header */}
             <div className="flex flex-col space-y-4 md:space-y-0 md:flex-row justify-between items-start md:items-center mb-8">
                 <div>
@@ -123,6 +227,13 @@ const ManageUsers = () => {
                         ({filteredUsers?.length || 0} / {users?.length || 0} người dùng)
                     </p>
                 </div>
+                <button
+                    onClick={() => { setAdminForm({ username: '', email: '', password: '', confirmPassword: '' }); setAdminFormError(''); setShowCreateAdmin(true); }}
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-xl shadow transition-all"
+                >
+                    <FaUserPlus className="h-4 w-4" />
+                    Tạo tài khoản Admin
+                </button>
             </div>
 
             {/* Search and Filter Section */}
@@ -326,14 +437,6 @@ const ManageUsers = () => {
                                                 </td>
                                                 <td className="border-t px-4 align-middle border-gray-200 text-xs p-3 text-center whitespace-nowrap sticky right-0 bg-white">
                                                     <div className="flex items-center justify-center space-x-2">
-                                                        <button 
-                                                            onClick={() => handleChangeRole(user._id, user.role, user.username)}
-                                                            className="px-3 py-1.5 text-xs font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-lg transition-all duration-300 inline-flex items-center"
-                                                            title={user.role === 'admin' ? 'Hạ xuống người dùng' : 'Nâng lên quản trị viên'}
-                                                        >
-                                                            <FaUserEdit className="mr-1" />
-                                                            {user.role === 'admin' ? 'User' : 'Admin'}
-                                                        </button>
                                                         {user.role !== 'admin' && (
                                                             <button 
                                                                 onClick={() => handleDeleteUser(user._id, user.username)}
@@ -342,6 +445,9 @@ const ManageUsers = () => {
                                                                 <FaTrash className="mr-1" />
                                                                 Xóa
                                                             </button>
+                                                        )}
+                                                        {user.role === 'admin' && (
+                                                            <span className="text-xs text-gray-400 italic">Quản trị viên</span>
                                                         )}
                                                     </div>
                                                 </td>

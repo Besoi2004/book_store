@@ -57,6 +57,10 @@ const booksApi = createApi({
             }),
             invalidatesTags: ['Books'],
         }),
+        fetchSoldStats: builder.query({
+            query: () => '/sold-stats',
+            providesTags: ['Books'],
+        }),
     })
 })
 
@@ -66,6 +70,7 @@ export const {
     useAddBookMutation, 
     useUpdateBookMutation, 
     useDeleteBookMutation,
-    useToggleFavoriteMutation
+    useToggleFavoriteMutation,
+    useFetchSoldStatsQuery,
 } = booksApi;
 export default booksApi;

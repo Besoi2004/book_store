@@ -6,13 +6,19 @@ const Categories = () => {
     return (
         <div className='py-12 px-4 max-w-screen-2xl mx-auto'>
             {/* Header */}
-            <div className='mb-8'>
-                <h2 className='text-4xl font-bold text-gray-800 mb-2'>
-                    Danh mục <span className='relative inline-block'>
-                        <span className='text-gray-700'>Sách</span>
-                        <span className='absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-secondary to-primary'></span>
+            <div className='mb-10 flex flex-col items-center text-center'>
+                <span className='inline-block px-4 py-1 mb-3 text-sm font-semibold tracking-widest uppercase bg-purple-100 text-purple-600 rounded-full'>
+                    Khám phá
+                </span>
+                <h2 className='text-4xl md:text-5xl font-extrabold text-gray-800 mb-3'>
+                    Danh mục{' '}
+                    <span className='bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent'>
+                        Sách
                     </span>
                 </h2>
+                <p className='text-gray-500 text-base max-w-md'>
+                    Chọn thể loại bạn yêu thích và khám phá hàng nghìn cuốn sách hấp dẫn
+                </p>
             </div>
 
             {/* Categories Grid */}

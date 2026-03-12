@@ -10,13 +10,19 @@ const MONTH_MAP = {
     '09': 'T9', '10': 'T10', '11': 'T11', '12': 'T12'
 };
 
-const RevenueChart = ({ monthlySales = [] }) => {
-    const labels = monthlySales.map(m => {
+const RevenueChart = ({ monthlySales = [], dailySales = [], mode = 'monthly' }) => {
+    const sourceData = mode === 'daily' ? dailySales : monthlySales;
+
+    const labels = sourceData.map(m => {
+        if (mode === 'daily') {
+            const [, month, day] = m._id.split('-');
+            return `${day}/${month}`;
+        }
         const [year, month] = m._id.split('-');
         return `${MONTH_MAP[month] || month}/${year.slice(2)}`;
     });
-    const salesData = monthlySales.map(m => m.totalSales);
-    const orderData = monthlySales.map(m => m.totalOrders);
+    const salesData = sourceData.map(m => m.totalSales);
+    const orderData = sourceData.map(m => m.totalOrders);
 
     const hasData = labels.length > 0;
 
